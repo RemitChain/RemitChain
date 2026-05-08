@@ -13,6 +13,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 [![Built on Stellar](https://img.shields.io/badge/Built%20on-Stellar-blueviolet?logo=stellar)](https://stellar.org)
 [![Deploy on Vercel](https://img.shields.io/badge/Deploy%20on-Vercel-black?logo=vercel)](https://vercel.com)
+[![Docs](https://img.shields.io/badge/docs-GitBook-blue)](https://k1ngd4vid.gitbook.io/afriwage-docs)
 
 **🌍 Live Demo:** [https://afriwage.vercel.app](https://afriwage.vercel.app)
 
@@ -181,6 +182,10 @@ Look for issues labelled [`good-first-issue`](https://github.com/AfriWage/AfriWa
 ## Community
 
 💬 **Join our Telegram:** [coming soon]
+
+## Documentation
+
+📖 **Full Docs:** https://k1ngd4vid.gitbook.io/afriwage-docs
 
 ---
 
