@@ -2,7 +2,7 @@
 
 import { ArrowRight, CheckCircle, Copy, ExternalLink, MapPin } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { formatAmount } from '@/lib/stellar';
+import { formatAmount } from '@/lib/stellar-format';
 import { cn, copyToClipboard } from '@/lib/utils';
 import type { Worker } from '@/types';
 import { SUPPORTED_COUNTRIES } from '@/types';
