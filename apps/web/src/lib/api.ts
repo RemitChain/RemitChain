@@ -106,7 +106,7 @@ async function parseError(response: Response): Promise<ApiError> {
   return new ApiError(message, response.status, details);
 }
 
-async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
+async function requestJson<T>(input: string | URL, init?: globalThis.RequestInit): Promise<T> {
   let response: Response;
 
   try {
