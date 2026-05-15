@@ -67,8 +67,6 @@ export function TransactionHistory({ publicKey, className }: TransactionHistoryP
     queryKey: ['transactions', publicKey, filter, pageCursor ?? 'initial'],
     queryFn: () =>
       getTransactions(publicKey, {
-        filter,
-        cursor: pageCursor,
         limit: 10,
       }),
     enabled: Boolean(publicKey),
@@ -85,10 +83,10 @@ export function TransactionHistory({ publicKey, className }: TransactionHistoryP
 
     setPages((current) =>
       pageCursor
-        ? [...current, ...query.data.transactions]
-        : query.data.transactions
+        ? [...current, ...query.data]
+        : query.data
     );
-    setNextCursor(query.data.nextCursor ?? null);
+    setNextCursor(null);
   }, [query.data, pageCursor]);
 
   const isIncoming = (tx: TransactionRecord) => tx.to === publicKey;

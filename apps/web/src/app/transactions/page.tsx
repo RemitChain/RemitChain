@@ -1,212 +1,331 @@
 'use client';
 
-import { Search, SlidersHorizontal } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { DashboardShell, SurfaceCard } from '@/components/dashboard-shell';
+import { useQuery } from '@tanstack/react-query';
+import {
+  ArrowDownLeft,
+  ArrowLeftRight,
+  ArrowUpRight,
+  ChevronRight,
+  Home,
+  Users,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useCallback, useState } from 'react';
 import { WalletConnect } from '@/components/WalletConnect';
+import type { TransactionRecord } from '@/lib/stellar';
+import { getTransactionHistory } from '@/lib/stellar';
+import { truncatePublicKey } from '@/lib/stellar-format';
+import { cn } from '@/lib/utils';
 
-type TxStatus = 'Delivered' | 'Received' | 'Pending review';
+/* ─── TYPES ────────────────────────────────────────────── */
 
-interface Transaction {
-  id: string;
-  date: string;
-  counterpart: string;
-  address: string;
-  amount: string;
-  currency: 'USDC' | 'XLM';
-  status: TxStatus;
-  memo: string;
+type DirectionFilter = 'all' | 'sent' | 'received';
+type AssetFilter = 'all' | 'USDC' | 'XLM';
+
+/* ─── SKELETON ─────────────────────────────────────────── */
+
+function Skeleton({ className }: { className?: string }) {
+  return (
+    <div className={cn('animate-pulse rounded-lg bg-white/10', className)} />
+  );
 }
 
-const ALL_TRANSACTIONS: Transaction[] = [
-  {
-    id: '1',
-    date: 'May 9, 2026',
-    counterpart: 'Amina Yusuf',
-    address: 'GABC...X7Y9',
-    amount: '-1,850.00',
-    currency: 'USDC',
-    status: 'Delivered',
-    memo: 'Weekly payroll',
-  },
-  {
-    id: '2',
-    date: 'May 8, 2026',
-    counterpart: 'Corporate reserve',
-    address: 'G9K2...P4M1',
-    amount: '+25,000.00',
-    currency: 'USDC',
-    status: 'Received',
-    memo: 'Treasury top-up',
-  },
-  {
-    id: '3',
-    date: 'May 8, 2026',
-    counterpart: 'Lerato Mbeki',
-    address: 'GZ5T...L9Q3',
-    amount: '-2,400.00',
-    currency: 'USDC',
-    status: 'Pending review',
-    memo: 'Sprint payroll',
-  },
-  {
-    id: '4',
-    date: 'May 7, 2026',
-    counterpart: 'Kwame Owusu',
-    address: 'GB7R...W2E8',
-    amount: '-980.00',
-    currency: 'USDC',
-    status: 'Delivered',
-    memo: 'Design retainer',
-  },
-  {
-    id: '5',
-    date: 'May 7, 2026',
-    counterpart: 'Treasury sweep',
-    address: 'GC3A...V8N4',
-    amount: '-140.00',
-    currency: 'XLM',
-    status: 'Delivered',
-    memo: 'Fees reserve',
-  },
-];
+function RowSkeleton() {
+  return (
+    <div className="flex items-center gap-4 border-b border-white/10 py-4">
+      <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-3 w-20" />
+      </div>
+      <div className="space-y-2 text-right">
+        <Skeleton className="ml-auto h-4 w-24" />
+        <Skeleton className="ml-auto h-3 w-16" />
+      </div>
+    </div>
+  );
+}
+
+/* ─── PAGE ─────────────────────────────────────────────── */
 
 export default function TransactionsPage() {
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [currencyFilter, setCurrencyFilter] = useState('All');
+  const [publicKey, setPublicKey] = useState<string | null>(null);
 
-  const filtered = useMemo(
-    () =>
-      ALL_TRANSACTIONS.filter((tx) => {
-        const query = search.toLowerCase();
-        const matchesSearch =
-          !query ||
-          tx.counterpart.toLowerCase().includes(query) ||
-          tx.memo.toLowerCase().includes(query) ||
-          tx.address.toLowerCase().includes(query);
-        const matchesStatus = statusFilter === 'All' || tx.status === statusFilter;
-        const matchesCurrency = currencyFilter === 'All' || tx.currency === currencyFilter;
-        return matchesSearch && matchesStatus && matchesCurrency;
-      }),
-    [currencyFilter, search, statusFilter]
-  );
+  const handleConnect = useCallback((pk: string) => {
+    setPublicKey(pk);
+  }, []);
+
+  const handleDisconnect = useCallback(() => {
+    setPublicKey(null);
+  }, []);
 
   return (
-    <DashboardShell
-      title="Transaction History"
-      description="Track treasury inflows, worker payouts, and anything that needs human review before delivery."
-      actions={<WalletConnect />}
-    >
-      <div className="space-y-6">
-        <SurfaceCard>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8c7760]" />
-              <input
-                type="text"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search by worker, memo, or wallet"
-                className="h-12 w-full rounded-[18px] border border-[#e7dccb] bg-[#fffaf2] pl-11 pr-4 text-sm text-[#102033] outline-none transition-colors focus:border-[#1f8f55]"
-              />
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="inline-flex items-center gap-2 rounded-[18px] border border-[#e7dccb] bg-[#fffaf2] px-4">
-                <SlidersHorizontal className="h-4 w-4 text-[#8c7760]" />
-                <select
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value)}
-                  className="h-12 bg-transparent text-sm text-[#102033] outline-none"
-                >
-                  <option>All</option>
-                  <option>Delivered</option>
-                  <option>Received</option>
-                  <option>Pending review</option>
-                </select>
-              </div>
-
-              <div className="inline-flex items-center rounded-[18px] border border-[#e7dccb] bg-[#fffaf2] px-4">
-                <select
-                  value={currencyFilter}
-                  onChange={(event) => setCurrencyFilter(event.target.value)}
-                  className="h-12 bg-transparent text-sm text-[#102033] outline-none"
-                >
-                  <option>All</option>
-                  <option>USDC</option>
-                  <option>XLM</option>
-                </select>
-              </div>
+    <div className="min-h-screen bg-[#0A0A0A]">
+      {/* ── TOP NAVBAR ────────────────────────────── */}
+      <nav className="sticky top-0 z-50 h-16 border-b border-white/10 bg-[#0A0A0A]">
+        <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6">
+          <div className="flex items-center gap-6">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-sm text-white/50 transition-colors hover:text-white"
+            >
+              <Home className="h-4 w-4" />
+              Home
+            </Link>
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[#14A800]" />
+              <span className="font-semibold text-white">Transactions</span>
             </div>
           </div>
-        </SurfaceCard>
 
-        <SurfaceCard className="hidden overflow-hidden lg:block">
-          <table className="w-full table-fixed text-left">
-            <thead>
-              <tr className="border-b border-[#efe3d0] text-sm text-[#8c7760]">
-                <th className="pb-4 font-medium">Date</th>
-                <th className="pb-4 font-medium">Counterparty</th>
-                <th className="pb-4 font-medium">Wallet</th>
-                <th className="pb-4 font-medium">Memo</th>
-                <th className="pb-4 text-right font-medium">Amount</th>
-                <th className="pb-4 text-right font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((tx) => (
-                <tr key={tx.id} className="border-b border-[#f3ecdf] last:border-b-0">
-                  <td className="py-5 text-sm text-[#637085]">{tx.date}</td>
-                  <td className="py-5 font-medium text-[#102033]">{tx.counterpart}</td>
-                  <td className="py-5 font-mono text-sm text-[#637085]">{tx.address}</td>
-                  <td className="py-5 text-sm text-[#637085]">{tx.memo}</td>
-                  <td className="py-5 text-right font-mono text-sm text-[#102033]">
-                    {tx.amount} {tx.currency}
-                  </td>
-                  <td className="py-5 text-right">
-                    <span className="rounded-full bg-[#fff8ef] px-3 py-1 text-xs font-semibold text-[#8c7760]">
-                      {tx.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </SurfaceCard>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/worker"
+              className="hidden items-center gap-1.5 text-sm text-white/50 transition-colors hover:text-white sm:flex"
+            >
+              <Users className="h-4 w-4" />
+              Worker Portal
+            </Link>
+            <WalletConnect onConnect={handleConnect} onDisconnect={handleDisconnect} />
+          </div>
+        </div>
+      </nav>
 
-        <div className="space-y-4 lg:hidden">
-          {filtered.map((tx) => (
-            <SurfaceCard key={tx.id} className="bg-white/96">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-semibold text-[#102033]">{tx.counterpart}</p>
-                  <p className="mt-1 text-sm text-[#637085]">{tx.memo}</p>
-                </div>
-                <span className="rounded-full bg-[#fff8ef] px-3 py-1 text-xs font-semibold text-[#8c7760]">
-                  {tx.status}
-                </span>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-[#8c7760]">Date</p>
-                  <p className="mt-1 text-[#102033]">{tx.date}</p>
-                </div>
-                <div>
-                  <p className="text-[#8c7760]">Amount</p>
-                  <p className="mt-1 font-mono text-[#102033]">
-                    {tx.amount} {tx.currency}
-                  </p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-[#8c7760]">Wallet</p>
-                  <p className="mt-1 font-mono text-sm text-[#637085]">{tx.address}</p>
-                </div>
-              </div>
-            </SurfaceCard>
+      {/* ── MAIN CONTENT ──────────────────────────── */}
+      <main className="mx-auto max-w-6xl px-6 py-10">
+        {!publicKey ? (
+          <DisconnectedState
+            onConnect={handleConnect}
+            onDisconnect={handleDisconnect}
+          />
+        ) : (
+          <ConnectedTransactions publicKey={publicKey} />
+        )}
+      </main>
+    </div>
+  );
+}
+
+/* ─── DISCONNECTED STATE ───────────────────────────────── */
+
+function DisconnectedState({
+  onConnect,
+  onDisconnect,
+}: {
+  onConnect: (pk: string) => void;
+  onDisconnect: () => void;
+}) {
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+      <ArrowLeftRight className="mx-auto h-16 w-16 text-[#E5E7EB]" />
+
+      <h2 className="mt-6 text-2xl font-bold text-white">
+        Connect your wallet to view transactions
+      </h2>
+
+      <p className="mx-auto mt-3 max-w-sm text-[#6B7280]">
+        Your full Stellar payment history will appear here once your Freighter
+        wallet is connected.
+      </p>
+
+      <div className="mt-8">
+        <WalletConnect onConnect={onConnect} onDisconnect={onDisconnect} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── CONNECTED STATE ──────────────────────────────────── */
+
+function ConnectedTransactions({ publicKey }: { publicKey: string }) {
+  const [dirFilter, setDirFilter] = useState<DirectionFilter>('all');
+  const [assetFilter, setAssetFilter] = useState<AssetFilter>('all');
+
+  const { data: transactions, isLoading } = useQuery<TransactionRecord[]>({
+    queryKey: ['transactions', publicKey],
+    queryFn: () => getTransactionHistory(publicKey),
+    enabled: !!publicKey,
+  });
+
+  /* ── Client-side filtering ── */
+  const filtered = (transactions ?? []).filter((tx) => {
+    const incoming = tx.to === publicKey;
+
+    if (dirFilter === 'sent' && incoming) return false;
+    if (dirFilter === 'received' && !incoming) return false;
+    if (assetFilter !== 'all' && tx.asset !== assetFilter) return false;
+
+    return true;
+  });
+
+  const directionTabs: { key: DirectionFilter; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'sent', label: 'Sent' },
+    { key: 'received', label: 'Received' },
+  ];
+
+  return (
+    <div>
+      {/* ── PAGE HEADER ───────────────────────────── */}
+      <h1 className="text-2xl font-bold text-white">Transactions</h1>
+
+      {/* ── FILTER ROW ────────────────────────────── */}
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        {/* Direction tabs */}
+        <div className="flex gap-2">
+          {directionTabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setDirFilter(tab.key)}
+              className={cn(
+                'rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                dirFilter === tab.key
+                  ? 'bg-white text-[#0A0A0A]'
+                  : 'border border-white/20 text-[#6B7280] hover:border-white/40'
+              )}
+            >
+              {tab.label}
+            </button>
           ))}
         </div>
+
+        {/* Asset filter */}
+        <select
+          value={assetFilter}
+          onChange={(e) => setAssetFilter(e.target.value as AssetFilter)}
+          className="ml-auto rounded-lg border border-white/20 bg-transparent px-3 py-2 text-sm text-white outline-none"
+        >
+          <option value="all" className="bg-[#0A0A0A]">All assets</option>
+          <option value="USDC" className="bg-[#0A0A0A]">USDC only</option>
+          <option value="XLM" className="bg-[#0A0A0A]">XLM only</option>
+        </select>
       </div>
-    </DashboardShell>
+
+      {/* ── TRANSACTIONS LIST ─────────────────────── */}
+      <div className="mt-6">
+        {isLoading ? (
+          <div>
+            {[...Array(8)].map((_, i) => (
+              <RowSkeleton key={i} />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <EmptyState hasTransactions={(transactions ?? []).length > 0} />
+        ) : (
+          <div>
+            {filtered.map((tx) => {
+              const incoming = tx.to === publicKey;
+              return (
+                <TransactionRow
+                  key={tx.id}
+                  tx={tx}
+                  incoming={incoming}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── TRANSACTION ROW ──────────────────────────────────── */
+
+function TransactionRow({
+  tx,
+  incoming,
+}: {
+  tx: TransactionRecord;
+  incoming: boolean;
+}) {
+  const formattedDate = new Date(tx.createdAt).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const formattedTime = new Date(tx.createdAt).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+  return (
+    <a
+      href={`https://stellar.expert/explorer/testnet/tx/${tx.hash}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex cursor-pointer items-center justify-between rounded-lg border-b border-white/10 px-2 py-4 transition-colors last:border-0 hover:bg-white/5"
+    >
+      {/* Left */}
+      <div className="flex items-center gap-4">
+        <div
+          className={cn(
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
+            incoming ? 'bg-[#14A800]/10' : 'bg-[#E24B4A]/10'
+          )}
+        >
+          {incoming ? (
+            <ArrowDownLeft className="h-5 w-5 text-[#14A800]" />
+          ) : (
+            <ArrowUpRight className="h-5 w-5 text-[#E24B4A]" />
+          )}
+        </div>
+        <div>
+          <p className="text-sm font-medium text-white">
+            {tx.memo || 'Payment'}
+          </p>
+          <p className="text-xs text-[#6B7280]">
+            {formattedDate} · {formattedTime}
+          </p>
+        </div>
+      </div>
+
+      {/* Right */}
+      <div className="flex items-center gap-3">
+        <div className="text-right">
+          <p
+            className={cn(
+              'text-sm font-semibold',
+              incoming ? 'text-[#14A800]' : 'text-[#E24B4A]'
+            )}
+          >
+            {incoming ? '+' : '-'}
+            {tx.amount} {tx.asset}
+          </p>
+          <p className="font-mono text-xs text-[#6B7280]">
+            {truncatePublicKey(incoming ? tx.from : tx.to, 4)}
+          </p>
+        </div>
+        <ChevronRight className="h-4 w-4 text-white/20" />
+      </div>
+    </a>
+  );
+}
+
+/* ─── EMPTY STATE ──────────────────────────────────────── */
+
+function EmptyState({ hasTransactions }: { hasTransactions: boolean }) {
+  return (
+    <div className="mt-6 rounded-xl bg-white/5 p-12 text-center">
+      <ArrowLeftRight className="mx-auto h-12 w-12 text-[#E5E7EB]" />
+      <p className="mt-4 text-base font-medium text-white">
+        No transactions found
+      </p>
+      <p className="mt-2 text-sm text-[#6B7280]">
+        {hasTransactions
+          ? 'Try a different filter.'
+          : 'Try a different filter or send your first payment.'}
+      </p>
+      {!hasTransactions && (
+        <Link
+          href="/send"
+          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#14A800] px-6 py-3 font-semibold text-white transition-colors hover:bg-[#108A00]"
+        >
+          Send Payment →
+        </Link>
+      )}
+    </div>
   );
 }
