@@ -14,21 +14,17 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useState } from 'react';
+import { DashboardShell, SurfaceCard } from '@/components/dashboard-shell';
 import { WalletConnect } from '@/components/WalletConnect';
 import type { Balance } from '@/lib/stellar';
-import {
-  fundTestnetAccount,
-  getBalance,
-} from '@/lib/stellar';
+import { fundTestnetAccount, getBalance } from '@/lib/stellar';
 import { formatAmount, truncatePublicKey } from '@/lib/stellar-format';
 import { cn, copyToClipboard } from '@/lib/utils';
 
 /* ─── SKELETON ─────────────────────────────────────────── */
 
 function Skeleton({ className }: { className?: string }) {
-  return (
-    <div className={cn('animate-pulse rounded-xl bg-white/10', className)} />
-  );
+  return <div className={cn('animate-pulse rounded-xl bg-white/10', className)} />;
 }
 
 /* ─── PAGE ─────────────────────────────────────────────── */
@@ -46,49 +42,19 @@ export default function WalletPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
-      {/* ── TOP NAVBAR ────────────────────────────── */}
-      <nav className="sticky top-0 z-50 h-16 border-b border-white/10 bg-[#0A0A0A]">
-        <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6">
-          <div className="flex items-center gap-6">
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-sm text-white/50 transition-colors hover:text-white"
-            >
-              <Home className="h-4 w-4" />
-              Home
-            </Link>
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#14A800]" />
-              <span className="font-semibold text-white">Wallet</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Link
-              href="/worker"
-              className="hidden items-center gap-1.5 text-sm text-white/50 transition-colors hover:text-white sm:flex"
-            >
-              <Users className="h-4 w-4" />
-              Worker Portal
-            </Link>
-            <WalletConnect onConnect={handleConnect} onDisconnect={handleDisconnect} />
-          </div>
-        </div>
-      </nav>
-
-      {/* ── MAIN CONTENT ──────────────────────────── */}
-      <main className="mx-auto max-w-6xl px-6 py-10">
+    <DashboardShell
+      title="Wallet"
+      description="Manage your Stellar wallet and view balances."
+      actions={<WalletConnect onConnect={handleConnect} onDisconnect={handleDisconnect} />}
+    >
+      <div className="space-y-6">
         {!publicKey ? (
-          <DisconnectedState
-            onConnect={handleConnect}
-            onDisconnect={handleDisconnect}
-          />
+          <DisconnectedState onConnect={handleConnect} onDisconnect={handleDisconnect} />
         ) : (
           <ConnectedWallet publicKey={publicKey} queryClient={queryClient} />
         )}
-      </main>
-    </div>
+      </div>
+    </DashboardShell>
   );
 }
 
@@ -105,9 +71,7 @@ function DisconnectedState({
     <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
       <Wallet2 className="mx-auto h-16 w-16 text-[#E5E7EB]" />
 
-      <h2 className="mt-6 text-2xl font-bold text-white">
-        Connect your wallet
-      </h2>
+      <h2 className="mt-6 text-2xl font-bold text-white">Connect your wallet</h2>
 
       <p className="mx-auto mt-3 max-w-sm text-[#6B7280]">
         Connect Freighter to view your real XLM and USDC balances.
@@ -158,8 +122,7 @@ function ConnectedWallet({
     },
   });
 
-  const accountActive =
-    balance && balance.xlm !== '0' && balance.xlm !== '0.0000000';
+  const accountActive = balance && balance.xlm !== '0' && balance.xlm !== '0.0000000';
 
   const handleCopyAddress = async () => {
     const ok = await copyToClipboard(publicKey);
@@ -175,9 +138,7 @@ function ConnectedWallet({
       <div>
         <h1 className="text-2xl font-bold text-white">Wallet</h1>
         <div className="mt-1 flex items-center gap-2">
-          <p className="font-mono text-sm text-[#6B7280]">
-            {truncatePublicKey(publicKey, 6)}
-          </p>
+          <p className="font-mono text-sm text-[#6B7280]">{truncatePublicKey(publicKey, 6)}</p>
           <button
             type="button"
             onClick={handleCopyAddress}
@@ -215,12 +176,8 @@ function ConnectedWallet({
               <p className="text-xs font-semibold uppercase tracking-widest text-white/50">
                 USDC Balance
               </p>
-              <p className="mt-2 text-4xl font-bold text-white">
-                {formatAmount(balance.usdc, '')}
-              </p>
-              <p className="mt-2 text-sm text-white/40">
-                USD Coin · Stellar testnet
-              </p>
+              <p className="mt-2 text-4xl font-bold text-white">{formatAmount(balance.usdc, '')}</p>
+              <p className="mt-2 text-sm text-white/40">USD Coin · Stellar testnet</p>
               <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#14A800]/20 px-3 py-1 text-xs text-[#14A800]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#14A800]" />
                 Live
@@ -232,12 +189,8 @@ function ConnectedWallet({
               <p className="text-xs font-semibold uppercase tracking-widest text-white/50">
                 XLM Balance
               </p>
-              <p className="mt-2 text-4xl font-bold text-white">
-                {formatAmount(balance.xlm, '')}
-              </p>
-              <p className="mt-2 text-sm text-white/40">
-                Stellar Lumens · Gas fees
-              </p>
+              <p className="mt-2 text-4xl font-bold text-white">{formatAmount(balance.xlm, '')}</p>
+              <p className="mt-2 text-sm text-white/40">Stellar Lumens · Gas fees</p>
             </div>
 
             {/* Account Status */}
@@ -253,9 +206,7 @@ function ConnectedWallet({
               >
                 {accountActive ? 'Active' : 'Not funded'}
               </p>
-              <p className="mt-2 text-sm text-white/40">
-                Stellar testnet account
-              </p>
+              <p className="mt-2 text-sm text-white/40">Stellar testnet account</p>
               {!accountActive && (
                 <button
                   type="button"
@@ -263,9 +214,7 @@ function ConnectedWallet({
                   disabled={fundMutation.isPending}
                   className="mt-4 flex items-center gap-2 rounded-lg bg-[#14A800] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#108A00] disabled:opacity-50"
                 >
-                  {fundMutation.isPending && (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  )}
+                  {fundMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   Fund with Friendbot
                 </button>
               )}
@@ -279,9 +228,7 @@ function ConnectedWallet({
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
           <AlertCircle className="mr-2 inline h-4 w-4" />
           Funding failed:{' '}
-          {fundMutation.error instanceof Error
-            ? fundMutation.error.message
-            : 'Unknown error'}
+          {fundMutation.error instanceof Error ? fundMutation.error.message : 'Unknown error'}
         </div>
       )}
 
@@ -294,9 +241,7 @@ function ConnectedWallet({
 
       {/* ── QUICK ACTIONS ─────────────────────────── */}
       <div>
-        <h3 className="mb-4 text-lg font-semibold text-white">
-          Quick actions
-        </h3>
+        <h3 className="mb-4 text-lg font-semibold text-white">Quick actions</h3>
         <div className="flex flex-wrap gap-3">
           <Link
             href="/send"
