@@ -2,7 +2,7 @@
 
 import { AlertCircle, CheckCircle, Copy, ExternalLink, LogOut, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { getPublicKey, isConnected, isFreighterInstalled } from '@/lib/freighter';
+import { getConnectedAddress, getPublicKey } from '@/lib/freighter';
 import { truncatePublicKey } from '@/lib/stellar-format';
 import { cn, copyToClipboard } from '@/lib/utils';
 import type { WalletStatus } from '@/types';
@@ -20,51 +20,35 @@ export function WalletConnect({ onConnect, onDisconnect, className }: WalletConn
   const [copied, setCopied] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Check if already connected on mount
+  // Silently restore an existing approved session on mount
   useEffect(() => {
-    const checkConnection = async () => {
-      if (!isFreighterInstalled()) return;
-      try {
-        const connected = await isConnected();
-        if (connected) {
-          const key = await getPublicKey();
-          setPublicKey(key);
-          setStatus('connected');
-          onConnect?.(key);
-        }
-      } catch {
-        // Silently fail — user hasn't connected yet
+    getConnectedAddress().then((address) => {
+      if (address) {
+        setPublicKey(address);
+        setStatus('connected');
+        onConnect?.(address);
       }
-    };
-    checkConnection();
+    });
   }, [onConnect]);
 
   const handleConnect = useCallback(async () => {
-    console.log('[WalletConnect] Connect button clicked');
-
-    // Check if Freighter is installed
-    if (!isFreighterInstalled()) {
-      console.log('[WalletConnect] Freighter not installed');
-      setError('Freighter wallet not detected. Please install Freighter to continue.');
-      setStatus('error');
-      return;
-    }
-
-    console.log('[WalletConnect] Freighter detected, requesting access...');
     setStatus('connecting');
     setError(null);
 
     try {
       const key = await getPublicKey();
-      console.log('[WalletConnect] Got public key:', key);
       setPublicKey(key);
       setStatus('connected');
       onConnect?.(key);
     } catch (err) {
-      console.error('[WalletConnect] Connection error:', err);
-      const message = err instanceof Error ? err.message : 'Failed to connect wallet';
-      setError(message);
       setStatus('error');
+
+      if (err instanceof Error && err.message === 'NOT_INSTALLED') {
+        setError('NOT_INSTALLED');
+      } else {
+        const msg = err instanceof Error ? err.message : 'Connection failed';
+        setError(msg);
+      }
     }
   }, [onConnect]);
 
@@ -85,60 +69,54 @@ export function WalletConnect({ onConnect, onDisconnect, className }: WalletConn
     }
   }, [publicKey]);
 
+  // ── Connected state ───────────────────────────────────────────────────────
   if (status === 'connected' && publicKey) {
     return (
       <div className={cn('relative', className)}>
         <button
           type="button"
-          onClick={() => setShowDropdown((prev) => !prev)}
-          className="flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-2 text-sm font-medium text-green-400 transition-all hover:border-green-500/50 hover:bg-green-500/20"
-          aria-label="Wallet connected — click to manage"
+          onClick={() => setShowDropdown((p) => !p)}
+          className="flex items-center gap-2 rounded-lg border border-[#1f8f55]/40 bg-[#1f8f55]/10 px-4 py-2 text-sm font-semibold text-[#1f8f55] transition-colors hover:bg-[#1f8f55]/20"
           aria-expanded={showDropdown}
         >
-          <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+          <span className="h-2 w-2 rounded-full bg-[#1f8f55]" />
           {truncatePublicKey(publicKey, 6)}
         </button>
 
         {showDropdown && (
-          <div className="absolute right-0 top-full z-50 mt-2 w-72 animate-fade-in rounded-2xl border border-white/10 bg-stellar-blue/95 p-4 shadow-card-hover backdrop-blur-xl">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wider text-slate-400">
+          <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-[#d8cebe] bg-white p-4 shadow-xl">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8c7760]">
               Connected Wallet
             </p>
-            <div className="mb-4 rounded-xl bg-white/5 p-3">
-              <p className="break-all font-mono text-xs text-slate-300">{publicKey}</p>
+            <div className="mt-2 rounded-lg border border-[#efe3d0] bg-[#fffaf2] p-3">
+              <p className="break-all font-mono text-xs text-[#102033]">{publicKey}</p>
             </div>
-
-            <div className="flex gap-2">
+            <div className="mt-3 flex gap-2">
               <button
                 type="button"
                 onClick={handleCopy}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-xs text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
-                aria-label={copied ? 'Copied!' : 'Copy address'}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#efe3d0] bg-[#fffaf2] px-3 py-2 text-xs font-medium text-[#637085] transition-colors hover:bg-[#f3ecdf]"
               >
                 {copied ? (
-                  <CheckCircle className="h-3.5 w-3.5 text-green-400" />
+                  <CheckCircle className="h-3.5 w-3.5 text-[#1f8f55]" />
                 ) : (
                   <Copy className="h-3.5 w-3.5" />
                 )}
                 {copied ? 'Copied!' : 'Copy'}
               </button>
-
               <a
                 href={`https://stellar.expert/explorer/testnet/account/${publicKey}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-xs text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
-                aria-label="View on Stellar Explorer"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#efe3d0] bg-[#fffaf2] px-3 py-2 text-xs font-medium text-[#637085] transition-colors hover:bg-[#f3ecdf]"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 Explorer
               </a>
-
               <button
                 type="button"
                 onClick={handleDisconnect}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400 transition-colors hover:bg-red-500/20 hover:text-red-300"
-                aria-label="Disconnect wallet"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-500 transition-colors hover:bg-red-100"
               >
                 <LogOut className="h-3.5 w-3.5" />
                 Disconnect
@@ -147,7 +125,6 @@ export function WalletConnect({ onConnect, onDisconnect, className }: WalletConn
           </div>
         )}
 
-        {/* Click-outside overlay */}
         {showDropdown && (
           <div
             className="fixed inset-0 z-40"
@@ -159,41 +136,55 @@ export function WalletConnect({ onConnect, onDisconnect, className }: WalletConn
     );
   }
 
+  // ── Disconnected / error state ────────────────────────────────────────────
   return (
-    <div className={cn('flex flex-col items-end gap-2', className)}>
+    <div className={cn('flex flex-col items-end gap-3', className)}>
       <button
         type="button"
         onClick={handleConnect}
         disabled={status === 'connecting'}
         className={cn(
-          'flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-all duration-200',
+          'inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-all',
           status === 'connecting'
-            ? 'cursor-wait bg-[#14A800]/70 text-white'
-            : 'bg-[#14A800] text-white hover:bg-[#108A00]'
+            ? 'cursor-wait bg-[#1f8f55]/70 text-white'
+            : 'bg-[#1f8f55] text-white hover:bg-[#14A800]'
         )}
-        aria-label="Connect Freighter wallet"
       >
         <Wallet className="h-4 w-4" />
-        {status === 'connecting' ? 'Connecting...' : 'Connect Wallet'}
+        {status === 'connecting' ? 'Connecting…' : 'Connect Wallet'}
       </button>
 
-      {status === 'error' && error && (
-        <div className="flex flex-col gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400 max-w-xs">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>{error}</span>
+      {/* Error banner — always clearly visible */}
+      {status === 'error' && error === 'NOT_INSTALLED' && (
+        <div className="flex w-72 flex-col gap-3 rounded-xl border border-[#efe3d0] bg-white p-4 shadow-lg">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#c45a43]" />
+            <div>
+              <p className="text-sm font-semibold text-[#102033]">Freighter not found</p>
+              <p className="mt-1 text-xs text-[#637085]">
+                Install the Freighter browser extension to connect your Stellar wallet.
+              </p>
+            </div>
           </div>
-          {error.includes('not detected') && (
-            <a
-              href="https://www.freighter.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-red-300 hover:text-red-200 underline"
-            >
-              Install Freighter
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          )}
+          <a
+            href="https://www.freighter.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 rounded-lg bg-[#102033] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1a3048]"
+          >
+            Install Freighter
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </div>
+      )}
+
+      {status === 'error' && error && error !== 'NOT_INSTALLED' && (
+        <div className="flex w-72 items-start gap-3 rounded-xl border border-[#efe3d0] bg-white p-4 shadow-lg">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#c45a43]" />
+          <div>
+            <p className="text-sm font-semibold text-[#102033]">Connection failed</p>
+            <p className="mt-1 text-xs text-[#637085]">{error}</p>
+          </div>
         </div>
       )}
     </div>
