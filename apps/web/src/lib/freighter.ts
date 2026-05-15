@@ -32,8 +32,8 @@ export function isFreighterInstalled(): boolean {
  * @throws Error if Freighter is not installed or user rejects
  */
 export async function getPublicKey(): Promise<string> {
-  const { isConnected } = await freighterIsConnected();
-  if (!isConnected) {
+  // First check if Freighter extension is installed
+  if (!isFreighterInstalled()) {
     throw new Error(
       'Freighter wallet is not installed. Please install it from https://freighter.app'
     );

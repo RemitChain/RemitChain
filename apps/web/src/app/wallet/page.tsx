@@ -68,28 +68,33 @@ function DisconnectedState({
   onDisconnect: () => void;
 }) {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-      <Wallet2 className="mx-auto h-16 w-16 text-[#E5E7EB]" />
+    <SurfaceCard>
+      <div className="flex min-h-[40vh] flex-col items-center justify-center py-12 text-center">
+        <div className="rounded-full bg-[#f3ecdf] p-6">
+          <Wallet2 className="h-12 w-12 text-[#8c7760]" />
+        </div>
 
-      <h2 className="mt-6 text-2xl font-bold text-white">Connect your wallet</h2>
+        <h2 className="mt-6 text-2xl font-bold text-[#102033]">Connect your wallet</h2>
 
-      <p className="mx-auto mt-3 max-w-sm text-[#6B7280]">
-        Connect Freighter to view your real XLM and USDC balances.
-      </p>
+        <p className="mx-auto mt-3 max-w-sm text-[#637085]">
+          Connect Freighter to view your real XLM and USDC balances.
+        </p>
 
-      <div className="mt-8">
-        <WalletConnect onConnect={onConnect} onDisconnect={onDisconnect} />
+        <div className="mt-8">
+          <WalletConnect onConnect={onConnect} onDisconnect={onDisconnect} />
+        </div>
+
+        <a
+          href="https://www.freighter.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#1f8f55] hover:text-[#14A800]"
+        >
+          Get Freighter
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
       </div>
-
-      <a
-        href="https://www.freighter.app"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-4 text-sm text-[#6B7280] underline transition-colors hover:text-white"
-      >
-        Get Freighter →
-      </a>
-    </div>
+    </SurfaceCard>
   );
 }
 

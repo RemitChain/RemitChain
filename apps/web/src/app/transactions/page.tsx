@@ -86,8 +86,10 @@ function DisconnectedState({
 }) {
   return (
     <SurfaceCard>
-      <div className="flex min-h-[40vh] flex-col items-center justify-center text-center py-12">
-        <ArrowLeftRight className="mx-auto h-16 w-16 text-[#8c7760]" />
+      <div className="flex min-h-[40vh] flex-col items-center justify-center py-12 text-center">
+        <div className="rounded-full bg-[#f3ecdf] p-6">
+          <ArrowLeftRight className="h-12 w-12 text-[#8c7760]" />
+        </div>
 
         <h2 className="mt-6 text-2xl font-bold text-[#102033]">
           Connect your wallet to view transactions
@@ -149,8 +151,8 @@ function ConnectedTransactions({ publicKey }: { publicKey: string }) {
               className={cn(
                 'rounded-full px-4 py-2 text-sm font-medium transition-colors',
                 dirFilter === tab.key
-                  ? 'bg-white text-[#0A0A0A]'
-                  : 'border border-white/20 text-[#6B7280] hover:border-white/40'
+                  ? 'bg-[#1f8f55] text-white'
+                  : 'border border-[#d8cebe] bg-white text-[#637085] hover:border-[#1f8f55]'
               )}
             >
               {tab.label}
@@ -162,17 +164,11 @@ function ConnectedTransactions({ publicKey }: { publicKey: string }) {
         <select
           value={assetFilter}
           onChange={(e) => setAssetFilter(e.target.value as AssetFilter)}
-          className="ml-auto rounded-lg border border-white/20 bg-transparent px-3 py-2 text-sm text-white outline-none"
+          className="ml-auto rounded-lg border border-[#d8cebe] bg-white px-3 py-2 text-sm text-[#102033] outline-none focus:border-[#1f8f55]"
         >
-          <option value="all" className="bg-[#0A0A0A]">
-            All assets
-          </option>
-          <option value="USDC" className="bg-[#0A0A0A]">
-            USDC only
-          </option>
-          <option value="XLM" className="bg-[#0A0A0A]">
-            XLM only
-          </option>
+          <option value="all">All assets</option>
+          <option value="USDC">USDC only</option>
+          <option value="XLM">XLM only</option>
         </select>
       </div>
 
@@ -218,7 +214,7 @@ function TransactionRow({ tx, incoming }: { tx: TransactionRecord; incoming: boo
       href={`https://stellar.expert/explorer/testnet/tx/${tx.hash}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex cursor-pointer items-center justify-between rounded-lg border-b border-white/10 px-2 py-4 transition-colors last:border-0 hover:bg-white/5"
+      className="flex cursor-pointer items-center justify-between rounded-lg border-b border-[#efe3d0] px-4 py-4 transition-colors last:border-0 hover:bg-[#fffaf2]"
     >
       {/* Left */}
       <div className="flex items-center gap-4">
@@ -235,8 +231,8 @@ function TransactionRow({ tx, incoming }: { tx: TransactionRecord; incoming: boo
           )}
         </div>
         <div>
-          <p className="text-sm font-medium text-white">{tx.memo || 'Payment'}</p>
-          <p className="text-xs text-[#6B7280]">
+          <p className="text-sm font-semibold text-[#102033]">{tx.memo || 'Payment'}</p>
+          <p className="text-xs text-[#8c7760]">
             {formattedDate} · {formattedTime}
           </p>
         </div>
@@ -251,11 +247,11 @@ function TransactionRow({ tx, incoming }: { tx: TransactionRecord; incoming: boo
             {incoming ? '+' : '-'}
             {tx.amount} {tx.asset}
           </p>
-          <p className="font-mono text-xs text-[#6B7280]">
+          <p className="font-mono text-xs text-[#8c7760]">
             {truncatePublicKey(incoming ? tx.from : tx.to, 4)}
           </p>
         </div>
-        <ChevronRight className="h-4 w-4 text-white/20" />
+        <ChevronRight className="h-4 w-4 text-[#8c7760]/40" />
       </div>
     </a>
   );
@@ -265,10 +261,12 @@ function TransactionRow({ tx, incoming }: { tx: TransactionRecord; incoming: boo
 
 function EmptyState({ hasTransactions }: { hasTransactions: boolean }) {
   return (
-    <div className="mt-6 rounded-xl bg-white/5 p-12 text-center">
-      <ArrowLeftRight className="mx-auto h-12 w-12 text-[#E5E7EB]" />
-      <p className="mt-4 text-base font-medium text-white">No transactions found</p>
-      <p className="mt-2 text-sm text-[#6B7280]">
+    <div className="mt-6 rounded-xl border border-[#efe3d0] bg-[#fffaf2] p-12 text-center">
+      <div className="mx-auto w-fit rounded-full bg-[#f3ecdf] p-4">
+        <ArrowLeftRight className="h-12 w-12 text-[#8c7760]" />
+      </div>
+      <p className="mt-4 text-base font-semibold text-[#102033]">No transactions found</p>
+      <p className="mt-2 text-sm text-[#637085]">
         {hasTransactions
           ? 'Try a different filter.'
           : 'Try a different filter or send your first payment.'}
